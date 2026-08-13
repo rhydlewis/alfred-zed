@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-MAX_ITEMS = 60
+DEFAULT_MAX_ITEMS = 60
 
 
 def fuzzy_match(query: str, text: str) -> bool:
@@ -36,7 +36,16 @@ def score(query: str, path: str) -> int:
     return s
 
 
-def alfred_item(title, subtitle, arg, icon_type='fileicon', icon_path=None):
+def get_max_items() -> int:
+    raw = os.getenv('ZED_LIMIT', str(DEFAULT_MAX_ITEMS)).strip()
+    try:
+        val = int(raw)
+        return max(1, min(val, 500))
+    except Exception:
+        return DEFAULT_MAX_ITEMS
+
+
+def alfred_item(title, subtitle, arg, icon_type='fileicon', icon_path=None, mods=None):
     item = {
         'title': title,
         'subtitle': subtitle,
@@ -45,11 +54,14 @@ def alfred_item(title, subtitle, arg, icon_type='fileicon', icon_path=None):
         'uid': arg,
         'icon': {'type': icon_type, 'path': icon_path or arg},
     }
+    if mods:
+        item['mods'] = mods
     return item
 
 
 def zed_db_path() -> Path:
-    return Path.home() / 'Library/Application Support/Zed/db/0-stable/db.sqlite'
+    channel = os.getenv('ZED_CHANNEL', '0-stable').strip() or '0-stable'
+    return Path.home() / f'Library/Application Support/Zed/db/{channel}/db.sqlite'
 
 
 def recent_projects(query: str):
@@ -96,7 +108,7 @@ def recent_projects(query: str):
     conn.close()
 
     ranked.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    return [p for _, _, p in ranked[:MAX_ITEMS]]
+    return [p for _, _, p in ranked[:get_max_items()]]
 
 
 def mdfind_paths(query: str, folders: bool):
@@ -132,12 +144,12 @@ def mdfind_paths(query: str, folders: bool):
             break
 
     paths.sort(key=lambda p: score(query, p), reverse=True)
-    return paths[:MAX_ITEMS]
+    return paths[:get_max_items()]
 
 
 def folder_search(query: str):
     if not query:
-        return recent_projects('')[:MAX_ITEMS]
+        return recent_projects('')[:get_max_items()]
     return mdfind_paths(query, folders=True)
 
 
@@ -145,17 +157,68 @@ def file_search(query: str):
     return mdfind_paths(query, folders=False)
 
 
+def zed_mods(path: str):
+    return {
+        'cmd': {
+            'arg': f'new:{path}',
+            'subtitle': f'⌘ Open in a new Zed window • {path}',
+        },
+        'alt': {
+            'arg': f'finder:{path}',
+            'subtitle': f'⌥ Reveal in Finder • {path}',
+        },
+    }
+
+
+def looks_like_path(query: str) -> bool:
+    q = (query or '').strip()
+    return q.startswith('/') or q.startswith('~/') or q.startswith('./') or q.startswith('../')
+
+
+def expand_query_path(query: str) -> str:
+    return os.path.abspath(os.path.expanduser(query.strip()))
+
+
+def maybe_path_fallback(items, query: str, mode: str):
+    if mode != 'recent':
+        return items
+    if not looks_like_path(query):
+        return items
+
+    try:
+        candidate = expand_query_path(query)
+    except Exception:
+        return items
+
+    if not os.path.exists(candidate):
+        return items
+
+    target = candidate if os.path.isdir(candidate) else str(Path(candidate).parent)
+    if any(i.get('arg') == target for i in items):
+        return items
+
+    fallback = alfred_item(
+        title=os.path.basename(target) or target,
+        subtitle=f'Open path in Zed • {target}',
+        arg=target,
+        mods=zed_mods(target),
+    )
+    return [fallback] + items
+
+
 def build_items(mode: str, query: str):
     if mode == 'recent':
         paths = recent_projects(query)
-        return [
+        items = [
             alfred_item(
                 title=os.path.basename(p) or p,
                 subtitle=f"Recent Zed project • {p}",
                 arg=p,
+                mods=zed_mods(p),
             )
             for p in paths
         ]
+        return maybe_path_fallback(items, query, mode)
 
     if mode == 'folders':
         paths = folder_search(query)
@@ -164,6 +227,7 @@ def build_items(mode: str, query: str):
                 title=os.path.basename(p) or p,
                 subtitle=f"Open folder in Zed • {p}",
                 arg=p,
+                mods=zed_mods(p),
             )
             for p in paths
         ]
@@ -175,8 +239,21 @@ def build_items(mode: str, query: str):
                 title=os.path.basename(p) or p,
                 subtitle=f"Open file in Zed • {p}",
                 arg=p,
+                mods=zed_mods(p),
             )
             for p in paths
+        ]
+
+    if mode == 'new':
+        return [
+            {
+                'title': 'New Zed Window',
+                'subtitle': 'Open a new empty Zed window',
+                'arg': 'newwindow',
+                'valid': True,
+                'uid': 'newwindow',
+                'icon': {'path': 'icon.png'},
+            }
         ]
 
     return []

@@ -47,11 +47,24 @@
 				<false/>
 			</dict>
 		</array>
+		<key>FD9B4329-1799-42DF-A82E-80FFED6F154A</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>D143D6FF-60BD-46EA-AC91-69B3EE19DFC0</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Rhyd Lewis</string>
 	<key>description</key>
-	<string>Search and open recent projects, folders, and files in Zed</string>
+	<string>Search and open recent projects, folders, and files in Zed (plus new window)</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
@@ -274,61 +287,169 @@
 			<key>version</key>
 			<integer>2</integer>
 		</dict>
+		<dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>FD9B4329-1799-42DF-A82E-80FFED6F154A</string>
+			<key>version</key>
+			<integer>3</integer>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>2</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>zn</string>
+				<key>queuedelaycustom</key>
+				<integer>1</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>1</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>Opening new Zed window…</string>
+				<key>script</key>
+				<string>scripts/zed_filter.py new "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Open a new empty Zed window</string>
+				<key>title</key>
+				<string>New Zed Window</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<false/>
+			</dict>
+		</dict>
 	</array>
 	<key>readme</key>
 	<string>Keywords:
 - zr: recent Zed projects
 - zfo: open folder in Zed
-- zfi: open file in Zed</string>
+- zfi: open file in Zed
+- zn: open a new Zed window
+
+Modifiers on results:
+- ⌘↩ open in new window
+- ⌥↩ reveal in Finder
+
+Configure Workflow vars:
+- ZED_CHANNEL
+- ZED_LIMIT</string>
 	<key>uidata</key>
 	<dict>
 		<key>00DAE0B8-B042-4E0C-B3B8-EC13806458A9</key>
 		<dict>
 			<key>xpos</key>
-			<real>160</real>
+			<real>160.0</real>
 			<key>ypos</key>
-			<real>300</real>
+			<real>300.0</real>
 		</dict>
 		<key>025DF07D-4C74-4A26-A844-D23E56E7E88D</key>
 		<dict>
 			<key>xpos</key>
-			<real>460</real>
+			<real>460.0</real>
 			<key>ypos</key>
-			<real>480</real>
+			<real>480.0</real>
 		</dict>
 		<key>18198681-31D0-458E-92C9-35CE7DF5CFA1</key>
 		<dict>
 			<key>xpos</key>
-			<real>460</real>
+			<real>460.0</real>
 			<key>ypos</key>
-			<real>300</real>
+			<real>300.0</real>
 		</dict>
 		<key>9E44E061-F355-4077-8301-EB699DD7C7D7</key>
 		<dict>
 			<key>xpos</key>
-			<real>160</real>
+			<real>160.0</real>
 			<key>ypos</key>
-			<real>120</real>
+			<real>120.0</real>
 		</dict>
 		<key>D143D6FF-60BD-46EA-AC91-69B3EE19DFC0</key>
 		<dict>
 			<key>xpos</key>
-			<real>460</real>
+			<real>460.0</real>
 			<key>ypos</key>
-			<real>120</real>
+			<real>120.0</real>
 		</dict>
 		<key>F47CFF4D-4A82-4AE0-9202-52972F2E8CBF</key>
 		<dict>
 			<key>xpos</key>
-			<real>160</real>
+			<real>160.0</real>
 			<key>ypos</key>
-			<real>480</real>
+			<real>480.0</real>
+		</dict>
+		<key>FD9B4329-1799-42DF-A82E-80FFED6F154A</key>
+		<dict>
+			<key>xpos</key>
+			<real>160.0</real>
+			<key>ypos</key>
+			<real>660.0</real>
 		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
-	<array/>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>0-stable</string>
+				<key>placeholder</key>
+				<string>0-stable</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Zed channel DB directory (0-stable, 0-preview, 0-nightly)</string>
+			<key>label</key>
+			<string>Zed Channel</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>ZED_CHANNEL</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>60</string>
+				<key>placeholder</key>
+				<string>60</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Maximum number of results to show</string>
+			<key>label</key>
+			<string>Result Limit</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>ZED_LIMIT</string>
+		</dict>
+	</array>
 	<key>version</key>
-	<string>1.0.1</string>
+	<string>1.1.0</string>
 	<key>webaddress</key>
 	<string>https://zed.dev</string>
 </dict>
