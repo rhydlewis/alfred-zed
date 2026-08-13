@@ -60,11 +60,37 @@
 				<false/>
 			</dict>
 		</array>
+		<key>57BD499F-74EF-4D15-84DB-F39DD56521E0</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>D143D6FF-60BD-46EA-AC91-69B3EE19DFC0</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>E85F596E-9522-4010-A652-1E3E4EA3B00E</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>D143D6FF-60BD-46EA-AC91-69B3EE19DFC0</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Rhyd Lewis</string>
 	<key>description</key>
-	<string>Search and open recent projects, folders, and files in Zed (plus new window)</string>
+	<string>Search/open Zed recents, files, folders, indexed projects, tabs, and new windows</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
@@ -336,6 +362,104 @@
 				<false/>
 			</dict>
 		</dict>
+		<dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>57BD499F-74EF-4D15-84DB-F39DD56521E0</string>
+			<key>version</key>
+			<integer>3</integer>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>0</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>zp</string>
+				<key>queuedelaycustom</key>
+				<integer>1</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>1</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>Searching indexed projects…</string>
+				<key>script</key>
+				<string>scripts/zed_filter.py projects "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>Search indexed projects from configured roots</string>
+				<key>title</key>
+				<string>Zed Indexed Projects</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+		</dict>
+		<dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>E85F596E-9522-4010-A652-1E3E4EA3B00E</string>
+			<key>version</key>
+			<integer>3</integer>
+			<key>config</key>
+			<dict>
+				<key>alfredfiltersresults</key>
+				<false/>
+				<key>alfredfiltersresultsmatchmode</key>
+				<integer>0</integer>
+				<key>argumenttreatemptyqueryasnil</key>
+				<false/>
+				<key>argumenttrimmode</key>
+				<integer>0</integer>
+				<key>argumenttype</key>
+				<integer>0</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>zt</string>
+				<key>queuedelaycustom</key>
+				<integer>1</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>1</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
+				<key>runningsubtext</key>
+				<string>Loading Zed tabs…</string>
+				<key>script</key>
+				<string>scripts/zed_filter.py tabs "$1"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>subtext</key>
+				<string>List and switch running Zed tabs/windows</string>
+				<key>title</key>
+				<string>Zed Tabs</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+		</dict>
 	</array>
 	<key>readme</key>
 	<string>Keywords:
@@ -343,14 +467,18 @@
 - zfo: open folder in Zed
 - zfi: open file in Zed
 - zn: open a new Zed window
+- zp: indexed projects from configured roots
+- zt: running Zed tabs/windows
 
-Modifiers on results:
+Modifiers on path results:
 - ⌘↩ open in new window
 - ⌥↩ reveal in Finder
 
 Configure Workflow vars:
 - ZED_CHANNEL
-- ZED_LIMIT</string>
+- ZED_LIMIT
+- ZED_PROJECT_ROOTS
+- ZED_PROJECT_CACHE_TTL</string>
 	<key>uidata</key>
 	<dict>
 		<key>00DAE0B8-B042-4E0C-B3B8-EC13806458A9</key>
@@ -402,6 +530,20 @@ Configure Workflow vars:
 			<key>ypos</key>
 			<real>660.0</real>
 		</dict>
+		<key>57BD499F-74EF-4D15-84DB-F39DD56521E0</key>
+		<dict>
+			<key>xpos</key>
+			<real>160.0</real>
+			<key>ypos</key>
+			<real>840.0</real>
+		</dict>
+		<key>E85F596E-9522-4010-A652-1E3E4EA3B00E</key>
+		<dict>
+			<key>xpos</key>
+			<real>160.0</real>
+			<key>ypos</key>
+			<real>1020.0</real>
+		</dict>
 	</dict>
 	<key>userconfigurationconfig</key>
 	<array>
@@ -447,9 +589,51 @@ Configure Workflow vars:
 			<key>variable</key>
 			<string>ZED_LIMIT</string>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>~/code</string>
+				<key>placeholder</key>
+				<string>~/code:~/work</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Colon-separated roots for indexed project search (zp)</string>
+			<key>label</key>
+			<string>Project Search Roots</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>ZED_PROJECT_ROOTS</string>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>default</key>
+				<string>300</string>
+				<key>placeholder</key>
+				<string>300</string>
+				<key>required</key>
+				<false/>
+				<key>trim</key>
+				<true/>
+			</dict>
+			<key>description</key>
+			<string>Project index cache TTL in seconds</string>
+			<key>label</key>
+			<string>Project Cache TTL (sec)</string>
+			<key>type</key>
+			<string>textfield</string>
+			<key>variable</key>
+			<string>ZED_PROJECT_CACHE_TTL</string>
+		</dict>
 	</array>
 	<key>version</key>
-	<string>1.1.0</string>
+	<string>1.2.0</string>
 	<key>webaddress</key>
 	<string>https://zed.dev</string>
 </dict>

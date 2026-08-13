@@ -35,6 +35,20 @@ if [[ "$TARGET" == finder:* ]]; then
   exit 0
 fi
 
+if [[ "$TARGET" == tab:* ]]; then
+  TAB_INDEX="${TARGET#tab:}"
+  /usr/bin/osascript <<OSA >/dev/null 2>&1 || true
+tell application "Zed" to activate
+tell application "System Events"
+  tell process "Zed"
+    set theMenu to menu 1 of menu bar item "Window" of menu bar 1
+    click menu item ${TAB_INDEX} of theMenu
+  end tell
+end tell
+OSA
+  exit 0
+fi
+
 if command -v zed >/dev/null 2>&1; then
   spawn zed "$TARGET"
 else

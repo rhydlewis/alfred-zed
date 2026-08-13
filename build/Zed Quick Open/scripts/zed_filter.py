@@ -4,6 +4,8 @@ import os
 import sqlite3
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 DEFAULT_MAX_ITEMS = 60
@@ -157,6 +159,171 @@ def file_search(query: str):
     return mdfind_paths(query, folders=False)
 
 
+def parse_roots() -> list[str]:
+    raw = os.getenv('ZED_PROJECT_ROOTS', '~/code')
+    parts = [p.strip() for p in raw.split(':') if p.strip()]
+    roots = []
+    for p in parts:
+        ep = os.path.expanduser(p)
+        if os.path.isdir(ep):
+            roots.append(ep)
+    return roots
+
+
+def projects_cache_file() -> Path:
+    return Path(tempfile.gettempdir()) / 'alfred-zed-projects-cache.json'
+
+
+def scan_projects() -> list[str]:
+    roots = parse_roots()
+    if not roots:
+        return []
+
+    projects = set()
+    maxdepth = os.getenv('ZED_PROJECT_SCAN_DEPTH', '4').strip() or '4'
+
+    for root in roots:
+        got_any = False
+        try:
+            res = subprocess.run(
+                ['mdfind', '-onlyin', root, "kMDItemFSName == '.git' && kMDItemContentType == 'public.folder'"],
+                capture_output=True,
+                text=True,
+                timeout=4,
+            )
+            for line in res.stdout.splitlines():
+                git_dir = line.strip()
+                if not git_dir:
+                    continue
+                parent = str(Path(git_dir).parent)
+                if os.path.isdir(parent):
+                    projects.add(parent)
+                    got_any = True
+        except Exception:
+            pass
+
+        if got_any:
+            continue
+
+        # Spotlight fallback: filesystem scan (slower, bounded by depth)
+        try:
+            res2 = subprocess.run(
+                ['find', root, '-maxdepth', maxdepth, '-type', 'd', '-name', '.git'],
+                capture_output=True,
+                text=True,
+                timeout=6,
+            )
+            for line in res2.stdout.splitlines():
+                git_dir = line.strip()
+                if not git_dir:
+                    continue
+                parent = str(Path(git_dir).parent)
+                if os.path.isdir(parent):
+                    projects.add(parent)
+        except Exception:
+            pass
+
+    return sorted(projects)
+
+
+def indexed_projects(query: str) -> list[str]:
+    ttl = int(os.getenv('ZED_PROJECT_CACHE_TTL', '300') or '300')
+    cache = projects_cache_file()
+    now = int(time.time())
+    roots = parse_roots()
+    roots_key = '|'.join(sorted(roots))
+
+    projects = None
+    if cache.exists():
+        try:
+            data = json.loads(cache.read_text())
+            same_roots = data.get('roots') == roots_key
+            fresh = now - int(data.get('ts', 0)) <= ttl
+            if same_roots and fresh:
+                projects = data.get('projects', [])
+        except Exception:
+            projects = None
+
+    if projects is None:
+        projects = scan_projects()
+        try:
+            cache.write_text(json.dumps({'ts': now, 'roots': roots_key, 'projects': projects}))
+        except Exception:
+            pass
+
+    if not query:
+        return projects[:get_max_items()]
+
+    ranked = []
+    for p in projects:
+        if fuzzy_match(query, p):
+            ranked.append((score(query, p), p))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return [p for _, p in ranked[:get_max_items()]]
+
+
+def list_zed_tabs() -> list[tuple[str, int]]:
+    script = r'''
+    tell application "System Events"
+      if not (exists process "Zed") then
+        return ""
+      end if
+      tell process "Zed"
+        set theMenu to menu 1 of menu bar item "Window" of menu bar 1
+        set theItems to menu items of theMenu
+        set foundSeparators to 0
+        set results to {}
+        set idx to 0
+        repeat with mi in theItems
+          set idx to idx + 1
+          set t to name of mi
+          if t is missing value then
+            set foundSeparators to foundSeparators + 1
+          else if foundSeparators >= 4 then
+            set end of results to (idx as text) & ":::" & t
+          end if
+        end repeat
+        set AppleScript's text item delimiters to "|||"
+        return results as text
+      end tell
+    end tell
+    '''
+    try:
+        res = subprocess.run(['osascript', '-e', script], capture_output=True, text=True, timeout=3)
+    except Exception:
+        return []
+    if res.returncode != 0:
+        return []
+
+    out = res.stdout.strip()
+    if not out:
+        return []
+
+    tabs = []
+    for part in out.split('|||'):
+        if ':::' not in part:
+            continue
+        idx, label = part.split(':::', 1)
+        try:
+            tabs.append((label.strip(), int(idx.strip())))
+        except Exception:
+            continue
+    return tabs
+
+
+def filter_tabs(query: str) -> list[tuple[str, int]]:
+    tabs = list_zed_tabs()
+    if not query:
+        return tabs[:get_max_items()]
+
+    ranked = []
+    for label, idx in tabs:
+        if fuzzy_match(query, label):
+            ranked.append((score(query, label), label, idx))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return [(label, idx) for _, label, idx in ranked[:get_max_items()]]
+
+
 def zed_mods(path: str):
     return {
         'cmd': {
@@ -256,6 +423,43 @@ def build_items(mode: str, query: str):
             }
         ]
 
+    if mode == 'projects':
+        paths = indexed_projects(query)
+        return [
+            alfred_item(
+                title=os.path.basename(p) or p,
+                subtitle=f"Indexed project • {p}",
+                arg=p,
+                mods=zed_mods(p),
+            )
+            for p in paths
+        ]
+
+    if mode == 'tabs':
+        tabs = filter_tabs(query)
+        if not tabs:
+            return [{
+                'title': 'No running Zed tabs found',
+                'subtitle': 'Open Zed and grant Alfred Accessibility permission if needed',
+                'valid': False,
+            }]
+
+        items = []
+        for label, idx in tabs:
+            if ' — ' in label:
+                project, file_name = label.split(' — ', 1)
+            else:
+                project, file_name = label, ''
+            items.append({
+                'title': project,
+                'subtitle': f"Switch tab • {file_name}" if file_name else 'Switch tab',
+                'arg': f'tab:{idx}',
+                'valid': True,
+                'uid': f'tab:{idx}',
+                'icon': {'path': 'icon.png'},
+            })
+        return items
+
     return []
 
 
@@ -270,6 +474,8 @@ def main():
             'recent': 'No recent Zed projects found',
             'folders': 'Type to search folders (Spotlight index)',
             'files': 'Type to search files (Spotlight index)',
+            'projects': 'No indexed projects found',
+            'tabs': 'No running Zed tabs found',
         }.get(mode, 'No results')
         items = [{
             'title': hint,
